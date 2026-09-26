@@ -1,9 +1,6 @@
 #!/usr/bin/env python
-
-from typing import NamedTuple
-
 import numpy as np
-from pyscipopt import Model, quicksum
+from pyscipopt import Model
 
 
 def example():
@@ -43,25 +40,59 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     # z[i, j] = 1 if x[i, j] positive, 0 otherwise
     z = model.addMatrixVar((n, n), name="z", vtype="binary")
     model.addMatrixCons(x <= big_m * z)
+
+    # Objective: minimize number of transactions
     model.setObjective(z.sum(), sense="minimize")
 
     # y[i]: amount of security i that I hold as a result of these exchanges.
     # Must be nonnegative.
     y = model.addMatrixVar(n, name="y", lb=0, ub=None)
     for i in range(n):
-        # Must agree with x as defined
+        # y agrees with x as defined
         model.addCons(y[i] == holdings[i] + x[:, i].sum() - x[i, :].sum())
-
     for j in range(1):
+        # Composition achieved by y agrees with target mix
         model.addMatrixCons(fund_compositions[j, :] @ y == target_composition_scaled[j])
-    model.optimize()
-    sol = model.getBestSol()
 
-    print(sol[x])
-    print([model.getVal(y[i]) for i in range(n)])
-    return sol
+    model.optimize()
+    if (status := model.getStatus()) == "optimal":
+        return model.getVal(x), model.getVal(y)
+    raise RuntimeError(f"SCIP returned inoptimal solver status {status!r}")
+
+
+def pretty_print(initial_holdings, x, y, security_names=None):
+    (n,) = initial_holdings.shape
+    assert y.shape == (n,)
+    assert x.shape == (n, n)
+    epsilon = 1e-8 * y.sum()
+
+    if not security_names:
+        security_names = [f"security {i}" for i in range(n)]
+
+    print("Initial holdings:")
+    for (i,), value in np.ndenumerate(initial_holdings):
+        if value < epsilon:
+            continue
+        name = security_names[i]
+        print(f"  {value:>8.2f} of {name}")
+
+    print("Transactions:")
+    for (i, j), value in np.ndenumerate(x):
+        if value < epsilon:
+            continue
+        left = security_names[i]
+        right = security_names[j]
+        print(f"  Exchange {value:.2f} of {left} for {right}")
+
+    print("Final holdings:")
+    for (i,), value in np.ndenumerate(y):
+        if value < epsilon:
+            continue
+        name = security_names[i]
+        print(f"  {value:>8.2f} of {name}")
 
 
 if __name__ == "__main__":
-    sol = rebalance_portfolio(*example())
-    print(sol)
+    holdings, fund_compositions, target_composition = example()
+    x, y = rebalance_portfolio(holdings, fund_compositions, target_composition)
+    pretty_print(holdings, x, y)
