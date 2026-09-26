@@ -3,7 +3,14 @@ import numpy as np
 from pyscipopt import Model
 
 
-def example():
+def main():
+    initial_holdings, fund_compositions, target_composition = example_problem()
+    transactions, final_holdings = rebalance_portfolio(initial_holdings, fund_compositions, target_composition)
+    pretty_print(initial_holdings, transactions, final_holdings)
+
+
+def example_problem():
+    "Provide typical inputs to `rebalance_portfolio()`."
     # Current holdings of five different securities
     holdings = np.array([100, 100, 500, 250, 50])
 
@@ -18,12 +25,14 @@ def example():
     # Desired proportion of each asset type in overall portfolio
     target_composition = np.array([0.75, 0.25, 0.05])
 
-    print(fund_compositions @ holdings)
-
     return holdings, fund_compositions, target_composition
 
 
 def rebalance_portfolio(holdings, fund_compositions, target_composition):
+    """Compute the minimal set of transactions to balance the portfolio.
+
+    Return the matrix of exchanges and resulting holdings.
+    """
     m, n = fund_compositions.shape
     assert (m, n) == (*target_composition.shape, *holdings.shape)
 
@@ -61,6 +70,7 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
 
 
 def pretty_print(initial_holdings, x, y, security_names=None):
+    "Print initial holdings, transactions, and final holdings."
     (n,) = initial_holdings.shape
     assert y.shape == (n,)
     assert x.shape == (n, n)
@@ -93,6 +103,4 @@ def pretty_print(initial_holdings, x, y, security_names=None):
 
 
 if __name__ == "__main__":
-    holdings, fund_compositions, target_composition = example()
-    x, y = rebalance_portfolio(holdings, fund_compositions, target_composition)
-    pretty_print(holdings, x, y)
+    main()
