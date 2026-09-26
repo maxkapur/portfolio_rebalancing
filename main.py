@@ -5,7 +5,9 @@ from pyscipopt import Model
 
 def main():
     initial_holdings, fund_compositions, target_composition = example_problem()
-    transactions, final_holdings = rebalance_portfolio(initial_holdings, fund_compositions, target_composition)
+    transactions, final_holdings = rebalance_portfolio(
+        initial_holdings, fund_compositions, target_composition
+    )
     pretty_print(initial_holdings, transactions, final_holdings)
 
 
@@ -36,17 +38,20 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     m, n = fund_compositions.shape
     assert (m, n) == (*target_composition.shape, *holdings.shape)
 
+    # For use in logic constraints
     big_m = holdings.sum()
 
+    # Scale target composition from proportions to holding units
     target_composition_scaled = big_m * target_composition
 
     model = Model()
 
-    # x[i, j]:  amount (in currency units) of security i that should be exchange
+    # x[i, j]: amount (in currency units) of security i that should be exchanged
     # for security j. Nonnegative; x[j, i] gives the other direction.
     x = model.addMatrixVar((n, n), name="x", lb=0, ub=None)
 
-    # z[i, j] = 1 if x[i, j] positive, 0 otherwise
+    # z[i, j] = 1 if x[i, j] positive, 0 otherwise; thus z.sum() is the number
+    # of transactions.
     z = model.addMatrixVar((n, n), name="z", vtype="binary")
     model.addMatrixCons(x <= big_m * z)
 
