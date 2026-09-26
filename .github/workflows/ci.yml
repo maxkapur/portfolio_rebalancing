@@ -5,8 +5,7 @@ on: [push]
 jobs:
   ci:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/astral-sh/uv:latest
+    container: ghcr.io/astral-sh/uv:debian
 
     steps:
       - uses: actions/checkout@v6
