@@ -1,0 +1,8 @@
+[project]
+name = "portfolio-rebalancing"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "pyscipopt>=6.2.1",
+    "ruff>=0.16.9",
+]
