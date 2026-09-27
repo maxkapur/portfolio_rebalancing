@@ -152,7 +152,7 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     for i in range(n):
         # y agrees with x as defined
         model.addCons(y[i] == holdings[i] + x[:, i].sum() - x[i, :].sum())
-    for j in range(1):
+    for j in range(m):
         # Composition achieved by y agrees with target mix
         model.addMatrixCons(fund_compositions[j, :] @ y == target_composition_scaled[j])
 
