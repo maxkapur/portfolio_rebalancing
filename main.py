@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from string import Template
 from sys import stderr
 
 import numpy as np
@@ -8,12 +9,27 @@ from pyscipopt import Model
 
 
 def main():
+    component_names = ["US equities", "Foreign equities", "Bonds"]
+    fund_names = [
+        "Whole-world Stock",
+        "US Tilt Equity",
+        "Strategy 90/10",
+        "Ex-US Fund",
+        "Bond Fund",
+    ]
+
     initial_holdings, fund_compositions, target_composition = example_problem()
     transactions, final_holdings = rebalance_portfolio(
         initial_holdings, fund_compositions, target_composition
     )
-    fund_names = [f"Fund {i}" for i in range(5)]
-    component_names = ["US equities", "Foreign equities", "Bonds"]
+
+    template_vars = {}
+
+    data = [
+        {"Fund": fund_name, "Holding": as_currency(holding)}
+        for fund_name, holding in zip(fund_names, initial_holdings)
+    ]
+    template_vars["current_holdings"] = as_markdown_table(data)
 
     data = [
         {"Fund": fund_name}
@@ -23,9 +39,66 @@ def main():
         }
         for fund_name, composition in zip(fund_names, fund_compositions.T)
     ]
-    write_stderr_table(data)
+    template_vars["fund_composition"] = as_markdown_table(data)
 
-    pretty_print(initial_holdings, transactions, final_holdings)
+    data = [
+        {
+            "Component": component_name,
+            "Current proportion": as_percentage(current_proportion),
+            "Target proportion": as_percentage(target_proportion),
+        }
+        for component_name, current_proportion, target_proportion in zip(
+            component_names,
+            fund_compositions @ initial_holdings / initial_holdings.sum(),
+            target_composition,
+        )
+    ]
+    template_vars["current_composition"] = as_markdown_table(data)
+
+    data = [
+        {
+            "Fund": fund_name,
+            "Current holding": as_currency(initial_holding),
+            "Rebalanced holding": as_currency(rebalanced_holding),
+            "Different?": "No"
+            if abs(initial_holding - rebalanced_holding) < 1e-4
+            else "Yes",
+        }
+        for fund_name, initial_holding, rebalanced_holding in zip(
+            fund_names, initial_holdings, final_holdings
+        )
+    ]
+    template_vars["rebalanced_holdings"] = as_markdown_table(data)
+
+    data = [
+        {
+            "Exchange amount": as_currency(amount),
+            "From fund": fund_names[i],
+            "To fund": fund_names[j],
+        }
+        for (i, j), amount in np.ndenumerate(transactions)
+        if amount > 1e-4
+    ]
+    template_vars["transactions"] = as_markdown_table(data)
+
+    markdown_template = Template("""
+Currently holding:
+$current_holdings
+
+Fund composition:
+$fund_composition
+
+Current composition:
+$current_composition
+
+Rebalanced holdings:
+$rebalanced_holdings
+
+Transactions:
+$transactions
+""")
+
+    stderr.write(markdown_template.substitute(**template_vars))
 
 
 def example_problem():
@@ -91,48 +164,20 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     raise RuntimeError(f"SCIP returned inoptimal solver status {status!r}")
 
 
-def pretty_print(initial_holdings, x, y, security_names=None):
-    "Print initial holdings, transactions, and final holdings."
-    (n,) = initial_holdings.shape
-    assert y.shape == (n,)
-    assert x.shape == (n, n)
-    epsilon = 1e-8 * y.sum()
-
-    if not security_names:
-        security_names = [f"security {i}" for i in range(n)]
-
-    print("Initial holdings:")
-    for (i,), value in np.ndenumerate(initial_holdings):
-        if value < epsilon:
-            continue
-        name = security_names[i]
-        print(f"  {value:>8.2f} of {name}")
-
-    print("Transactions:")
-    for (i, j), value in np.ndenumerate(x):
-        if value < epsilon:
-            continue
-        left = security_names[i]
-        right = security_names[j]
-        print(f"  Exchange {value:.2f} of {left} for {right}")
-
-    print("Final holdings:")
-    for (i,), value in np.ndenumerate(y):
-        if value < epsilon:
-            continue
-        name = security_names[i]
-        print(f"  {value:>8.2f} of {name}")
-
-
-def write_stderr_table(data: list[dict]) -> None:
-    stderr.write(markdown_table(data).set_params(quote=False).get_markdown())
-    stderr.write("\n\n")
+def as_markdown_table(data: list[dict]) -> str:
+    return markdown_table(data).set_params(quote=False).get_markdown()
 
 
 def as_percentage(s: float) -> str:
     if s < 1e-4:
         return ""
     return f"{round(100 * s)}%"
+
+
+def as_currency(v: int) -> str:
+    if v < 1e-4:
+        return ""
+    return f"${v:.2f}"
 
 
 if __name__ == "__main__":
