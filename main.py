@@ -164,7 +164,8 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
 
 def as_markdown_table(data):
     "Render the data as a Markdown table with preferred params."
-    return markdown_table(data).set_params(quote=False).get_markdown()
+    params = {"quote": False, "row_sep": "markdown", "padding_weight": "left"}
+    return markdown_table(data).set_params(**params).get_markdown()
 
 
 def as_percentage(v):
