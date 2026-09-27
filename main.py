@@ -164,17 +164,17 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     raise RuntimeError(f"SCIP returned inoptimal solver status {status!r}")
 
 
-def as_markdown_table(data: list[dict]) -> str:
+def as_markdown_table(data):
     return markdown_table(data).set_params(quote=False).get_markdown()
 
 
-def as_percentage(s: float) -> str:
+def as_percentage(s):
     if s < 1e-4:
         return ""
     return f"{round(100 * s)}%"
 
 
-def as_currency(v: int) -> str:
+def as_currency(v):
     if v < 1e-4:
         return ""
     return f"${v:.2f}"
