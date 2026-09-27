@@ -9,7 +9,7 @@ from pyscipopt import Model
 
 
 def main():
-    component_names = ["US equities", "Foreign equities", "Bonds"]
+    "Demonstrate the problem with fake data. Write markdown tables to stderr."
     fund_names = [
         "Whole-world Stock",
         "US Tilt Equity",
@@ -17,11 +17,45 @@ def main():
         "Ex-US Fund",
         "Bond Fund",
     ]
+    component_names = ["US equities", "Foreign equities", "Bonds"]
 
-    initial_holdings, fund_compositions, target_composition = example_problem()
+    # Current holdings of the five funds
+    initial_holdings = np.array([100, 100, 500, 250, 50])
+
+    # Each fund's composition (proportion of US stock, foreign stock, bonds)
+    fund_compositions = np.array(
+        [
+            [0.6, 0.9, 0.9, 0.0, 0.0],
+            [0.4, 0.1, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.1, 0.0, 1.0],
+        ]
+    )
+    # Desired composition of my overall portfolio
+    target_composition = np.array([0.75, 0.25, 0.05])
+
+    # Run the integer programming algorithm
     transactions, final_holdings = rebalance_portfolio(
         initial_holdings, fund_compositions, target_composition
     )
+
+    # Format results and write to stderr (to separate our outputs from SCIP's
+    # messages on stdout)
+    markdown_template = Template("""
+Currently holding:
+$current_holdings
+
+Fund composition:
+$fund_composition
+
+Current composition:
+$current_composition
+
+Rebalanced holdings:
+$rebalanced_holdings
+
+Transactions:
+$transactions
+""")
 
     template_vars = {}
 
@@ -81,43 +115,7 @@ def main():
     ]
     template_vars["transactions"] = as_markdown_table(data)
 
-    markdown_template = Template("""
-Currently holding:
-$current_holdings
-
-Fund composition:
-$fund_composition
-
-Current composition:
-$current_composition
-
-Rebalanced holdings:
-$rebalanced_holdings
-
-Transactions:
-$transactions
-""")
-
     stderr.write(markdown_template.substitute(**template_vars))
-
-
-def example_problem():
-    "Provide typical inputs to `rebalance_portfolio()`."
-    # Current holdings of five different securities
-    holdings = np.array([100, 100, 500, 250, 50])
-
-    # Composition (proportion of each asset type, e.g. stock, bonds, cash) of each security
-    fund_compositions = np.array(
-        [
-            [0.6, 0.9, 0.9, 0.0, 0.0],
-            [0.4, 0.1, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.1, 0.0, 1.0],
-        ]
-    )
-    # Desired proportion of each asset type in overall portfolio
-    target_composition = np.array([0.75, 0.25, 0.05])
-
-    return holdings, fund_compositions, target_composition
 
 
 def rebalance_portfolio(holdings, fund_compositions, target_composition):
@@ -165,16 +163,19 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
 
 
 def as_markdown_table(data):
+    "Render the data as a Markdown table with preferred params."
     return markdown_table(data).set_params(quote=False).get_markdown()
 
 
-def as_percentage(s):
-    if s < 1e-4:
+def as_percentage(v):
+    "Format a numerical proportion as a percentage."
+    if v < 1e-4:
         return ""
-    return f"{round(100 * s)}%"
+    return f"{round(100 * v)}%"
 
 
 def as_currency(v):
+    "Format a numerical proportion as US dollars."
     if v < 1e-4:
         return ""
     return f"${v:.2f}"
