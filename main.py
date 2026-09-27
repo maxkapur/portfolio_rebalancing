@@ -156,6 +156,11 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
         # Composition achieved by y agrees with target mix
         model.addMatrixCons(fund_compositions[j, :] @ y == target_composition_scaled[j])
 
+    # Uncomment to force the inoptimal example solution, with 2 transactions,
+    # from the blog post:
+
+    # model.addCons(y[4] == 0)
+
     model.optimize()
     if (status := model.getStatus()) == "optimal":
         return model.getVal(x), model.getVal(y)
