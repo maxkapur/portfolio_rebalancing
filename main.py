@@ -31,7 +31,7 @@ def main():
         ]
     )
     # Desired composition of my overall portfolio
-    target_composition = np.array([0.75, 0.25, 0.05])
+    target_composition = np.array([0.7, 0.25, 0.05])
 
     # Run the integer programming algorithm
     transactions, final_holdings = rebalance_portfolio(
