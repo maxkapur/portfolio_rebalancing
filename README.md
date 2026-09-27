@@ -1,5 +1,9 @@
 # Integer program for rebalancing an investment portfolio
 
+<!-- TODO:
+See the writeup on [my blog](...).
+-->
+
 See https://www.bogleheads.org/wiki/Rebalancing.
 
 ## Usage
