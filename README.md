@@ -1,3 +1,13 @@
 # Integer program for rebalancing an investment portfolio
 
 See https://www.bogleheads.org/wiki/Rebalancing.
+
+## Usage
+
+```shell
+# Demo script:
+uv run --script main.py
+
+# Copy markdown tables to the clipboard to begin the blog post (assumes fish):
+uv run --script main.py 2>&1 1>&0 | fish_clipboard_copy
+```
