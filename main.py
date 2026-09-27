@@ -1,5 +1,9 @@
 #!/usr/bin/env python
+
+from sys import stderr
+
 import numpy as np
+from py_markdown_table.markdown_table import markdown_table
 from pyscipopt import Model
 
 
@@ -8,6 +12,19 @@ def main():
     transactions, final_holdings = rebalance_portfolio(
         initial_holdings, fund_compositions, target_composition
     )
+    fund_names = [f"Fund {i}" for i in range(5)]
+    component_names = ["US equities", "Foreign equities", "Bonds"]
+
+    data = [
+        {"Fund": fund_name}
+        | {
+            component_name: as_percentage(proportion)
+            for component_name, proportion in zip(component_names, composition)
+        }
+        for fund_name, composition in zip(fund_names, fund_compositions.T)
+    ]
+    write_stderr_table(data)
+
     pretty_print(initial_holdings, transactions, final_holdings)
 
 
@@ -105,6 +122,17 @@ def pretty_print(initial_holdings, x, y, security_names=None):
             continue
         name = security_names[i]
         print(f"  {value:>8.2f} of {name}")
+
+
+def write_stderr_table(data: list[dict]) -> None:
+    stderr.write(markdown_table(data).set_params(quote=False).get_markdown())
+    stderr.write("\n\n")
+
+
+def as_percentage(s: float) -> str:
+    if s < 1e-4:
+        return ""
+    return f"{round(100 * s)}%"
 
 
 if __name__ == "__main__":
