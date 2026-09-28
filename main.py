@@ -11,7 +11,7 @@ from pyscipopt import Model
 def main():
     "Demonstrate the problem with fake data. Write markdown tables to stderr."
     fund_names = [
-        "Whole-world Stock",
+        "Whole-World Stock",
         "US Tilt Equity",
         "Strategy 90/10",
         "Ex-US Fund",
