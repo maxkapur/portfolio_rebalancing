@@ -1,7 +1,7 @@
 # Integer program for rebalancing an investment portfolio
 
 <!-- TODO:
-See the writeup on [my blog](...).
+See the writeup on [my blog](https://maxkapur.com/posts/2026-09-30-cheap-easy-rebalancing/).
 -->
 
 See https://www.bogleheads.org/wiki/Rebalancing.
