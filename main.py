@@ -104,6 +104,8 @@ $transactions
     ]
     template_vars["rebalanced_holdings"] = as_markdown_table(data)
 
+    # TODO: Topo sort the exchanges so that they are shown in an order that's
+    # actually possible
     data = [
         {
             "Exchange amount": as_currency(amount),
