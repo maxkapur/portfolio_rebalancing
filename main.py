@@ -161,8 +161,8 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     # Uncomment to force the inoptimal example solution, with 3 transactions,
     # from the blog post:
 
-    # model.addCons(y[4] == 50)
-    # model.addCons(y[0] >= 500)
+    # model.addCons(y[0] == 0)
+    # model.addCons(y[2] == 0)
 
     model.optimize()
     if (status := model.getStatus()) == "optimal":
