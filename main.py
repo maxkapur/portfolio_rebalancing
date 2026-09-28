@@ -145,6 +145,11 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     z = model.addMatrixVar((n, n), name="z", vtype="binary")
     model.addMatrixCons(x <= big_m * z)
 
+    # This will happen anyway in an optimal solution but
+    for i in range(n):
+        model.fixVar(x[i, i], 0)
+        model.fixVar(z[i, i], 0)
+
     # Objective: minimize number of transactions
     model.setObjective(z.sum(), sense="minimize")
 
@@ -161,8 +166,8 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     # Uncomment to force the inoptimal example solution, with 3 transactions,
     # from the blog post:
 
-    # model.addCons(y[0] == 0)
-    # model.addCons(y[2] == 0)
+    # model.fixVar(y[0], 0)
+    # model.fixVar(y[2], 0)
 
     model.optimize()
     if (status := model.getStatus()) == "optimal":
