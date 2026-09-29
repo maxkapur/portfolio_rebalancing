@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import itertools
+from collections import defaultdict
 from string import Template
 from sys import stderr
 
@@ -104,8 +106,6 @@ $transactions
     ]
     template_vars["rebalanced_holdings"] = as_markdown_table(data)
 
-    # TODO: Topo sort the exchanges so that they are shown in an order that's
-    # actually possible
     data = [
         {
             "Exchange amount": as_currency(amount),
@@ -115,6 +115,15 @@ $transactions
         for (i, j), amount in np.ndenumerate(transactions)
         if amount > 1e-4
     ]
+    # Topologically sort the exchanges so that the sequence of exchanges is
+    # logically possible: Construct a graph graph with edges pointing from funds
+    # sold to funds bought in each exchange. The topological order has the
+    # property that if a is exchanged for b, then sort_keys[a] < sort_keys[b].
+    # Thus if we order the transactions based on the sort key of the "to" fund,
+    # we avoid exchanging *out of* any fund until we have completed all
+    # exchanges *into* it.
+    sort_keys = topo_sort((d["From fund"], d["To fund"]) for d in data)
+    data.sort(key=lambda d: sort_keys[d["To fund"]])
     template_vars["transactions"] = as_markdown_table(data)
 
     stderr.write(markdown_template.substitute(**template_vars))
@@ -166,8 +175,8 @@ def rebalance_portfolio(holdings, fund_compositions, target_composition):
     # Uncomment to force the inoptimal example solution, with 3 transactions,
     # from the blog post:
 
-    # model.fixVar(y[0], 0)
-    # model.fixVar(y[2], 0)
+    model.fixVar(y[0], 0)
+    model.fixVar(y[2], 0)
 
     model.optimize()
     if (status := model.getStatus()) == "optimal":
@@ -179,6 +188,40 @@ def as_markdown_table(data):
     "Render the data as a Markdown table with preferred params."
     params = {"quote": False, "row_sep": "markdown", "padding_weight": "left"}
     return markdown_table(data).set_params(**params).get_markdown()
+
+
+def topo_sort(edges):
+    "Topologically sort the directed acyclic graph. Return dict of key values."
+
+    # Rearrange as adjacency dict
+    children = defaultdict(list)
+    for left, right in edges:
+        children[left].append(right)
+
+    root_nodes = set(children.keys()).difference(itertools.chain(*children.values()))
+
+    # Depth-first traversal to induce topological order
+    counter = 0
+    visited_at = {}
+    for root in root_nodes:
+        visited_at[root] = counter
+        counter += 1
+
+        stack = [root]
+        while stack:
+            top = stack[-1]
+
+            for child in children[top]:
+                if child in visited_at:
+                    continue
+                visited_at[child] = counter
+                counter += 1
+                stack.append(child)
+                break
+            else:
+                stack.pop()
+
+    return visited_at
 
 
 def as_percentage(v):
